@@ -514,6 +514,9 @@
     <!-- If this is true, the screen will fade off. -->
     <bool name="config_animateScreenLights">false</bool>
 
+    <!-- If this is true, colorfade will be enabled. -->
+    <bool name="config_colorFade_enabled">true</bool>
+
     <!-- If this is true, key chords can be used to take a screenshot on the device. -->
     <bool name="config_enableScreenshotChord">true</bool>
 
