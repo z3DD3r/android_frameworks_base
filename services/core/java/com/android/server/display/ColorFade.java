@@ -31,6 +31,7 @@ import android.opengl.EGLDisplay;
 import android.opengl.EGLSurface;
 import android.opengl.GLES11Ext;
 import android.opengl.GLES20;
+import android.os.SystemProperties;
 import android.util.Slog;
 import android.view.Display;
 import android.view.DisplayInfo;
@@ -83,6 +84,9 @@ final class ColorFade {
     private static final int EGL_GL_COLORSPACE_KHR = 0x309D;
     private static final int EGL_GL_COLORSPACE_DISPLAY_P3_PASSTHROUGH_EXT = 0x3490;
     private static final int EGL_PROTECTED_CONTENT_EXT = 0x32C0;
+
+    private static final boolean DESTROY_SURFACE_AFTER_DETACH =
+            SystemProperties.getBoolean("ro.egl.destroy_after_detach", false);
 
     private final int mDisplayId;
 
@@ -380,9 +384,14 @@ final class ColorFade {
                 destroyScreenshotTexture();
                 destroyGLShaders();
                 destroyGLBuffers();
-                destroyEglSurface();
+                if (!DESTROY_SURFACE_AFTER_DETACH) {
+                    destroyEglSurface();
+                }
             } finally {
                 detachEglContext();
+            }
+            if (DESTROY_SURFACE_AFTER_DETACH) {
+                destroyEglSurface();
             }
             // This is being called with no active context so shouldn't be
             // needed but is safer to not change for now.
