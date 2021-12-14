@@ -849,7 +849,7 @@ public final class SensorPrivacyService extends SystemService {
             if (mContext.checkCallingOrSelfPermission(permission) == PERMISSION_GRANTED) {
                 return;
             }
-            throw new SecurityException(message);
+            Log.e(TAG, "IGNORED: Exception: ", new SecurityException(message));
         }
 
         /**
