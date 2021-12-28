@@ -279,7 +279,14 @@ public class Location implements Parcelable {
      * @return the Unix epoch time of this location
      */
     public @IntRange(from = 0) long getTime() {
-        return mTimeMs;
+        long gpsTime = mTimeMs;
+
+        // Adding 1024 weeks for chips with GPS Week Number Rollover issue
+        // 1024 * 7 * 24 * 60 * 60 * 1000 = 619315200000L
+        if ((gpsTime > 0) && (gpsTime < 1546300800000L))
+            gpsTime += 619315200000L;
+
+        return gpsTime;
     }
 
     /**
