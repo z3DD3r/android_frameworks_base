@@ -59,6 +59,9 @@ import java.util.Locale;
 public class BiometricScheduler {
 
     private static final String BASE_TAG = "BiometricScheduler";
+
+    private boolean mCancel;
+
     // Number of recent operations to keep in our logs for dumpsys
     protected static final int LOG_NUM_RECENT_OPERATIONS = 50;
 
@@ -108,6 +111,30 @@ public class BiometricScheduler {
                 return "OtherFp";
             default:
                 return "UnknownUnknown";
+        }
+    }
+
+    /**
+     * Monitors an operation's cancellation. If cancellation takes too long, the watchdog will
+     * kill the current operation and forcibly start the next.
+     */
+    private static final class CancellationWatchdog implements Runnable {
+        static final int DELAY_MS = 3000;
+
+        final String tag;
+        final BiometricSchedulerOperation operation;
+        CancellationWatchdog(String tag, BiometricSchedulerOperation operation) {
+            this.tag = tag;
+            this.operation = operation;
+        }
+
+        @Override
+        public void run() {
+            if (operation.mState != BiometricSchedulerOperation.STATE_FINISHED) {
+                Slog.e(tag, "[Watchdog Triggered]: " + operation);
+                operation.mClientMonitor.mCallback
+                        .onClientFinished(operation.mClientMonitor, false /* success */);
+            }
         }
     }
 
@@ -237,13 +264,16 @@ public class BiometricScheduler {
      * @param gestureAvailabilityDispatcher may be null if the sensor does not support gestures
      *                                      (such as fingerprint swipe).
      */
-    public BiometricScheduler(@NonNull String tag,
+    public BiometricScheduler(Context context, @NonNull String tag,
             @SensorType int sensorType,
             @Nullable GestureAvailabilityDispatcher gestureAvailabilityDispatcher) {
         this(tag, new Handler(Looper.getMainLooper()), sensorType, gestureAvailabilityDispatcher,
                 IBiometricService.Stub.asInterface(
                         ServiceManager.getService(Context.BIOMETRIC_SERVICE)),
                 LOG_NUM_RECENT_OPERATIONS, CoexCoordinator.getInstance());
+
+        mCancel = context.getResources().getBoolean(
+                com.android.internal.R.bool.config_fpCancelIfNotIdle);
     }
 
     @VisibleForTesting
@@ -257,8 +287,13 @@ public class BiometricScheduler {
 
     protected void startNextOperationIfIdle() {
         if (mCurrentOperation != null) {
-            Slog.v(getTag(), "Not idle, current operation: " + mCurrentOperation);
-            return;
+            if(mCancel) {
+               Slog.v(getTag(), "Not idle, cancelling current operation: " + mCurrentOperation);
+               cancelInternal(mCurrentOperation);
+            } else {
+               Slog.v(getTag(), "Not idle, current operation: " + mCurrentOperation);
+               return;
+            }
         }
         if (mPendingOperations.isEmpty()) {
             Slog.d(getTag(), "No operations, returning to idle");
@@ -395,6 +430,37 @@ public class BiometricScheduler {
         } else {
             startNextOperationIfIdle();
         }
+    }
+
+    private void cancelInternal(BiometricSchedulerOperation operation) {
+        if (operation != mCurrentOperation) {
+            Slog.e(getTag(), "cancelInternal invoked on non-current operation: " + operation);
+            return;
+        }
+        if (!(operation.mClientMonitor instanceof Interruptable)) {
+            Slog.w(getTag(), "Operation not interruptable: " + operation);
+            return;
+        }
+        if (operation.mState == BiometricSchedulerOperation.STATE_STARTED_CANCELING) {
+            Slog.w(getTag(), "Cancel already invoked for operation: " + operation);
+            return;
+        }
+        if (operation.mState == BiometricSchedulerOperation.STATE_WAITING_FOR_COOKIE) {
+            Slog.w(getTag(), "Skipping cancellation for non-started operation: " + operation);
+            // We can set it to null immediately, since the HAL was never notified to start.
+            mCurrentOperation = null;
+            startNextOperationIfIdle();
+            return;
+        }
+        Slog.d(getTag(), "[Cancelling] Current client: " + operation.mClientMonitor);
+        final Interruptable interruptable = (Interruptable) operation.mClientMonitor;
+        interruptable.cancel();
+        operation.mState = BiometricSchedulerOperation.STATE_STARTED_CANCELING;
+
+        // Add a watchdog. If the HAL does not acknowledge within the timeout, we will
+        // forcibly finish this client.
+        mHandler.postDelayed(new CancellationWatchdog(getTag(), operation),
+                CancellationWatchdog.DELAY_MS);
     }
 
     /**

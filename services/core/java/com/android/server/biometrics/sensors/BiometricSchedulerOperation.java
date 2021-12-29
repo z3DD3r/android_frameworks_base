@@ -81,11 +81,11 @@ public class BiometricSchedulerOperation {
     private static final int CANCEL_WATCHDOG_DELAY_MS = 3000;
 
     @NonNull
-    private final BaseClientMonitor mClientMonitor;
+    final BaseClientMonitor mClientMonitor;
     @Nullable
     private final BaseClientMonitor.Callback mClientCallback;
     @OperationState
-    private int mState;
+    int mState;
     @VisibleForTesting
     @NonNull
     final Runnable mCancelWatchdog;
