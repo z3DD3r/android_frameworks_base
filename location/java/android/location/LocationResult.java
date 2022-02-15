@@ -106,10 +106,10 @@ public final class LocationResult implements Parcelable {
         final int size = mLocations.size();
         for (int i = 0; i < size; ++i) {
             Location location = mLocations.get(i);
-            if (!location.isComplete()) {
+            /* if (!location.isComplete()) {
                 throw new IllegalArgumentException(
                         "incomplete location at index " + i + ": " + mLocations);
-            }
+            }*/
             if (location.getElapsedRealtimeNanos() < prevElapsedRealtimeNs) {
                 throw new IllegalArgumentException(
                         "incorrectly ordered location at index " + i + ": " + mLocations);
