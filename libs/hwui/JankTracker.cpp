@@ -201,9 +201,8 @@ void JankTracker::finishFrame(FrameInfo& frame, std::unique_ptr<FrameMetricsRepo
     // If we are in triple buffering, we have enough buffers in queue to sustain a single frame
     // drop without jank, so adjust the frame interval to the deadline.
     if (isTripleBuffered) {
-        int64_t originalDeadlineDuration = deadline - frame[FrameInfoIndex::IntendedVsync];
-        deadline = mNextFrameStartUnstuffed + originalDeadlineDuration;
-        frame.set(FrameInfoIndex::FrameDeadline) = deadline;
+        deadline += frameInterval;
+        frame.set(FrameInfoIndex::FrameDeadline) += frameInterval;
     }
 
     // If we hit the deadline, cool!

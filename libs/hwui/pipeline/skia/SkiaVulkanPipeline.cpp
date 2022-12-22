@@ -55,14 +55,7 @@ VulkanManager& SkiaVulkanPipeline::vulkanManager() {
 }
 
 MakeCurrentResult SkiaVulkanPipeline::makeCurrent() {
-    // In case the surface was destroyed (e.g. a previous trimMemory call) we
-    // need to recreate it here.
-    if (mHardwareBuffer) {
-        mRenderThread.requireVkContext();
-    } else if (!isSurfaceReady() && mNativeWindow) {
-        setSurface(mNativeWindow.get(), SwapBehavior::kSwap_default);
-    }
-    return isContextReady() ? MakeCurrentResult::AlreadyCurrent : MakeCurrentResult::Failed;
+    return MakeCurrentResult::AlreadyCurrent;
 }
 
 Frame SkiaVulkanPipeline::getFrame() {
@@ -159,11 +152,7 @@ void SkiaVulkanPipeline::onStop() {}
     return android::base::unique_fd(fence);
 }
 
-// We can safely ignore the swap behavior because VkManager will always operate
-// in a mode equivalent to EGLManager::SwapBehavior::kBufferAge
-bool SkiaVulkanPipeline::setSurface(ANativeWindow* surface, SwapBehavior /*swapBehavior*/) {
-    mNativeWindow = surface;
-
+bool SkiaVulkanPipeline::setSurface(ANativeWindow* surface, SwapBehavior swapBehavior) {
     if (mVkSurface) {
         vulkanManager().destroySurface(mVkSurface);
         mVkSurface = nullptr;
