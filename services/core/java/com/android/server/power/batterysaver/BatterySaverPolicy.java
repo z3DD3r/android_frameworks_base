@@ -27,6 +27,7 @@ import android.os.Handler;
 import android.os.PowerManager;
 import android.os.PowerManager.ServiceType;
 import android.os.PowerSaveState;
+import android.os.SystemProperties;
 import android.provider.DeviceConfig;
 import android.provider.Settings;
 import android.text.TextUtils;
@@ -505,7 +506,7 @@ public class BatterySaverPolicy extends ContentObserver implements
                 rawPolicy.enableDataSaver,
                 rawPolicy.enableFirewall,
                 // Don't force night mode when car projection is enabled.
-                rawPolicy.enableNightMode && !mAutomotiveProjectionActive.get(),
+                rawPolicy.enableNightMode && !mAutomotiveProjectionActive.get() && SystemProperties.getBoolean("ro.config.night_mode_on_battery_saver", true),
                 rawPolicy.enableQuickDoze,
                 rawPolicy.forceAllAppsStandby,
                 rawPolicy.forceBackgroundCheck,
