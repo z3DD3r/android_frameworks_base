@@ -2811,6 +2811,17 @@ public class Notification implements Parcelable
             if (person != null) {
                 visitor.accept(person.getIconUri());
             }
+
+            final RemoteInputHistoryItem[] history = getParcelableArrayFromBundle(extras,
+                Notification.EXTRA_REMOTE_INPUT_HISTORY_ITEMS, RemoteInputHistoryItem.class);
+            if (history != null) {
+                for (int i = 0; i < history.length; i++) {
+                    RemoteInputHistoryItem item = history[i];
+                    if (item.getUri() != null) {
+                        visitor.accept(item.getUri());
+                    }
+                }
+            }
         }
 
         if (isStyle(MessagingStyle.class) && extras != null) {
@@ -3346,8 +3357,11 @@ public class Notification implements Parcelable
      *
      * @hide
      */
-    public void setAllowlistToken(@Nullable IBinder token) {
-        mAllowlistToken = token;
+    public void clearAllowlistToken() {
+        mAllowlistToken = null;
+        if (publicVersion != null) {
+            publicVersion.clearAllowlistToken();
+        }
     }
 
     /**
