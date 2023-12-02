@@ -37,6 +37,7 @@ import android.os.Handler;
 import android.os.Message;
 import android.os.PowerExemptionManager;
 import android.os.SystemClock;
+import android.os.SystemProperties;
 import android.provider.DeviceConfig;
 import android.provider.DeviceConfig.OnPropertiesChangedListener;
 import android.provider.DeviceConfig.Properties;
@@ -849,11 +850,13 @@ final class ActivityManagerConstants extends ContentObserver {
             "no_kill_cached_processes_post_boot_completed_duration_millis";
 
     /** @see #mNoKillCachedProcessesUntilBootCompleted */
-    private static final boolean DEFAULT_NO_KILL_CACHED_PROCESSES_UNTIL_BOOT_COMPLETED = true;
+    private static final boolean DEFAULT_NO_KILL_CACHED_PROCESSES_UNTIL_BOOT_COMPLETED =
+            SystemProperties.getBoolean("ro.am.no_kill_cached_processes_until_boot_completed", true);
 
     /** @see #mNoKillCachedProcessesPostBootCompletedDurationMillis */
     private static final long
-            DEFAULT_NO_KILL_CACHED_PROCESSES_POST_BOOT_COMPLETED_DURATION_MILLIS = 600_000;
+            DEFAULT_NO_KILL_CACHED_PROCESSES_POST_BOOT_COMPLETED_DURATION_MILLIS =
+            SystemProperties.getLong("ro.am.no_kill_cached_processes_post_boot_completed_duration_millis", 600_000);
 
     /**
      * If true, do not kill excessive cached processes proactively, until user-0 is unlocked.
